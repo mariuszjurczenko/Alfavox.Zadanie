@@ -5,15 +5,17 @@ namespace Alfavox.Refactor;
 public class SwapiService : ISwapiService
 {
     private readonly IHttpClientService _httpClientService;
+    private readonly string _apiBaseUrl;
 
-    public SwapiService(IHttpClientService httpClientService)
+    public SwapiService(IHttpClientService httpClientService, string apiBaseUrl)
     {
         _httpClientService = httpClientService;
+        _apiBaseUrl = apiBaseUrl;
     }
 
     public async Task<LukeSkywalkerData> GetLukeSkywalkerDataAsync()
     {
-        string response = await _httpClientService.GetStringAsync("https://swapi.py4e.com/api/people/1/");
+        string response = await _httpClientService.GetStringAsync(_apiBaseUrl);
         var lukeData = JsonConvert.DeserializeObject<LukeSkywalkerData>(response);
 
         lukeData.FilmNames = await GetNamesFromUrlsAsync(lukeData.Films);

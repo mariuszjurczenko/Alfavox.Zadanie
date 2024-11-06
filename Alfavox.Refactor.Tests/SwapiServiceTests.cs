@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Moq;
 using Newtonsoft.Json;
 
@@ -7,12 +8,18 @@ namespace Alfavox.Refactor.Tests;
 public class SwapiServiceTests
 {
     private readonly Mock<IHttpClientService> _mockHttpClientService;
+    private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly SwapiService _swapiService;
 
     public SwapiServiceTests()
     {
         _mockHttpClientService = new Mock<IHttpClientService>();
-        _swapiService = new SwapiService(_mockHttpClientService.Object);
+        _mockConfiguration = new Mock<IConfiguration>();
+        _mockConfiguration.Setup(c => c["ApiSettings:SwapiBaseUrl"]).Returns("https://swapi.py4e.com/api/");
+
+        _swapiService = new SwapiService(
+            _mockHttpClientService.Object,
+            _mockConfiguration.Object["ApiSettings:SwapiBaseUrl"]);
     }
 
     [Fact]

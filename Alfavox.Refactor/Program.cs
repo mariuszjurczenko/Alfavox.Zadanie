@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Serilog;
 using Serilog.Formatting.Json;
@@ -10,21 +11,37 @@ class Program
     static async Task Main(string[] args)
     {
         string projectPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\"));
+        string jsonPath = Path.Combine(projectPath, "appsettings.json");
         string logPath = Path.Combine(projectPath, "logs", "app_log.txt");
         string txtPath = Path.Combine(projectPath, "txt", "LukeSkywalkerData.txt");
 
+        // Wczytanie konfiguracji z appsettings.json
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile(jsonPath, optional: false, reloadOnChange: true)
+            .Build();
+
         Log.Logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(configuration)
             .WriteTo.Console(outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}")
             .WriteTo.File(new JsonFormatter(), logPath)
             .CreateLogger();
 
         Log.Information("Start aplikacji");
 
+        // Pobranie ustawień API z konfiguracji
+        var apiBaseUrl = configuration["ApiSettings:SwapiBaseUrl"];
+        if (string.IsNullOrEmpty(apiBaseUrl))
+        {
+            Log.Fatal("Brak konfiguracji adresu API");
+            return;
+        }
+
         var serviceProvider = new ServiceCollection()
-            .AddHttpClient()
-            .AddSingleton<IHttpClientService, HttpClientService>()
-            .AddSingleton<ISwapiService, SwapiService>()
-            .BuildServiceProvider();
+             .AddHttpClient()
+             .AddSingleton<IHttpClientService, HttpClientService>()
+             .AddSingleton<ISwapiService>(provider => 
+                new SwapiService(provider.GetRequiredService<IHttpClientService>(), apiBaseUrl))
+             .BuildServiceProvider();
 
         try
         {
